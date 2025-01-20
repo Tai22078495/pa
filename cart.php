@@ -2,16 +2,34 @@
 session_start();
 $cart = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['remove'])) {
-    // Remove product logic
-    $product_name = $_POST['product_name'];
-    $cart = array_filter($cart, function($item) use ($product_name) {
-        return $item['name'] != $product_name;
-    });
-    
-    // Re-index the array to avoid gaps after removing an item
-    $cart = array_values($cart);
-    $_SESSION['cart'] = $cart;
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    if (isset($_POST['remove'])) {
+        // Remove product logic
+        $product_name = $_POST['product_name'];
+        $cart = array_filter($cart, function($item) use ($product_name) {
+            return $item['name'] != $product_name;
+        });
+        
+        // Re-index the array to avoid gaps after removing an item
+        $cart = array_values($cart);
+        $_SESSION['cart'] = $cart;
+    }
+    elseif (isset($_POST['update_quantity'])) {
+        // Update quantity logic
+        $product_name = $_POST['product_name'];
+        $new_quantity = intval($_POST['quantity']);
+        foreach ($cart as &$item) {
+            if ($item['name'] == $product_name) {
+                $item['quantity'] = $new_quantity;
+                break;
+            }
+        }
+        $_SESSION['cart'] = $cart;
+    }
+    elseif (isset($_POST['clear_cart'])) {
+        // Clear cart logic
+        $_SESSION['cart'] = [];
+    }
 }
 ?>
 
@@ -113,76 +131,83 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['remove'])) {
                 <th>Subtotal</th>
                 <th>Actions</th>
             </tr>
-            <?php if (count($_SESSION['cart']) > 0): ?>
-                <?php
-                $total = 0;
-                foreach ($_SESSION['cart'] as $product_id => $product):
-                    $subtotal = $product['price'] * $product['quantity'];
-                    $total += $subtotal;
-                ?>
-                <tr data-product-id="<?php echo $product_id; ?>">
-                    <td><?php echo htmlspecialchars($product['name']); ?></td>
-                    <td>$<?php echo number_format($product['price'], 2); ?></td>
-                    <td><?php echo $product['quantity']; ?></td>
-                    <td>$<?php echo number_format($subtotal, 2); ?></td>
-                    <td>
-                        <button class="btn-remove" onclick="removeFromCart('<?php echo $product_id; ?>', '<?php echo $product['name']; ?>')">Remove</button>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
-                <tr>
-                    <td colspan="3"><strong>Total</strong></td>
-                    <td><strong>$<?php echo number_format($total, 2); ?></strong></td>
-                    <td></td>
-                </tr>
-            <?php else: ?>
-                <tr>
-                    <td colspan="5" class="empty-message">Your cart is empty.</td>
-                </tr>
-            <?php endif; ?>
+            <tbody id="cart-items">
+                <?php if (count($cart) > 0): ?>
+                    <?php
+                    $total = 0;
+                    foreach ($cart as $product_id => $product):
+                        $subtotal = $product['price'] * $product['quantity'];
+                        $total += $subtotal;
+                    ?>
+                    <tr data-product-id="<?php echo $product_id; ?>">
+                        <td><?php echo htmlspecialchars($product['name']); ?></td>
+                        <td>$<?php echo number_format($product['price'], 2); ?></td>
+                        <td>
+                            <input type="number" min="1" value="<?php echo $product['quantity']; ?>" onchange="updateQuantity('<?php echo $product_id; ?>', this.value)">
+                        </td>
+                        <td>$<?php echo number_format($subtotal, 2); ?></td>
+                        <td>
+                            <button class="btn-remove" onclick="removeFromCart('<?php echo $product_id; ?>', '<?php echo $product['name']; ?>')">Remove</button>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                    <tr>
+                        <td colspan="3"><strong>Total</strong></td>
+                        <td><strong>$<?php echo number_format($total, 2); ?></strong></td>
+                        <td></td>
+                    </tr>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="5" class="empty-message">Your cart is empty.</td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
         </table>
 
         <div class="checkout-btn">
             <a href="shop.php" class="btn-continue-shopping">Continue Shopping</a>
-            <?php if (count($_SESSION['cart']) > 0): ?>
+            <?php if (count($cart) > 0): ?>
                 <a href="personalinfo.html">Proceed to Checkout</a>
+                <button onclick="clearCart()">Clear Cart</button>
             <?php endif; ?>
         </div>
         
     </div>
 
     <script>
-        function loadCartItems() {
-            const cartData = JSON.parse(localStorage.getItem('cart')) || [];
-            const cartItemsContainer = document.getElementById('cart-items');
+        function updateQuantity(productId, newQuantity) {
+            // Update quantity in localStorage
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            cart = cart.map(item => {
+                if (item.product_id == productId) {
+                    item.quantity = parseInt(newQuantity);
+                }
+                return item;
+            });
+            localStorage.setItem('cart', JSON.stringify(cart));
 
-            if (cartData.length === 0) {
-                cartItemsContainer.innerHTML = '<tr><td colspan="5" class="empty-message">Your cart is empty.</td></tr>';
-                return;
-            }
-
-            cartItemsContainer.innerHTML = ''; // Clear existing items
-
-            cartData.forEach(item => {
-                const subtotal = item.price * item.quantity;
-                const row = document.createElement('tr');
-                row.setAttribute('data-product-id', item.product_id);
-
-                row.innerHTML = `
-                    <td>${item.name}</td>
-                    <td>$${item.price.toFixed(2)}</td>
-                    <td>${item.quantity}</td>
-                    <td>$${subtotal.toFixed(2)}</td>
-                    <td>
-                        <button class="btn-remove" onclick="removeFromCart(${item.product_id}, '${item.name}')">Remove</button>
-                    </td>
-                `;
-                cartItemsContainer.appendChild(row);
+            // Notify backend to update the session
+            fetch('cart.php', {
+                method: 'POST',
+                body: new URLSearchParams({
+                    'update_quantity': true,
+                    'product_name': cart.find(item => item.product_id == productId).name,
+                    'quantity': newQuantity
+                }),
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+            }).then(response => response.text())
+            .then(data => {
+                console.log('Quantity updated successfully:', data);
+                location.reload(); // Reload the page to update totals
+            }).catch(error => {
+                console.error('Error updating quantity:', error);
             });
         }
-        
-           function removeFromCart(productId, productName) {
-            // Update cart in localStorage (if applicable)
+
+        function removeFromCart(productId, productName) {
+            // Update cart in localStorage
             let cart = JSON.parse(localStorage.getItem('cart')) || [];
             cart = cart.filter(item => item.name !== productName);
             localStorage.setItem('cart', JSON.stringify(cart));
@@ -194,7 +219,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['remove'])) {
             }
 
             // Notify backend to update the session
-            fetch('remove_from_cart.php', {
+            fetch('cart.php', {
                 method: 'POST',
                 body: new URLSearchParams({
                     'remove': true,
@@ -211,7 +236,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['remove'])) {
                 console.error('Error removing item:', error);
             });
         }
+
+        function clearCart() {
+            // Clear cart in localStorage
+            localStorage.removeItem('cart');
+
+            // Notify backend to clear the session
+            fetch('cart.php', {
+                method: 'POST',
+                body: new URLSearchParams({
+                    'clear_cart': true
+                }),
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+            }).then(response => response.text())
+            .then(data => {
+                console.log('Cart cleared successfully:', data);
+                location.reload(); // Reload the page to update totals
+            }).catch(error => {
+                console.error('Error clearing cart:', error);
+            });
+        }
     </script>
 </body>
-
 </html>
