@@ -118,15 +118,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         $subtotal = $product['price'] * $product['quantity'];
                         $total += $subtotal;
                     ?>
-                    <tr data-product-id="<?php echo $product_id; ?>">
+                    <tr data-product-id="<?php echo $product_id; ?>" data-product-name="<?php echo htmlspecialchars($product['name']); ?>">
                         <td><?php echo htmlspecialchars($product['name']); ?></td>
                         <td>$<?php echo number_format($product['price'], 2); ?></td>
                         <td>
-                            <input type="number" min="1" value="<?php echo $product['quantity']; ?>" onchange="updateQuantity('<?php echo $product_id; ?>', this.value)">
+                            <input type="number" min="1" value="<?php echo $product['quantity']; ?>" onchange="updateQuantity('<?php echo htmlspecialchars($product['name']); ?>', this.value)">
                         </td>
                         <td class="subtotal">$<?php echo number_format($subtotal, 2); ?></td>
                         <td>
-                            <button class="btn-remove" onclick="removeFromCart('<?php echo $product_id; ?>', '<?php echo $product['name']; ?>')">Remove</button>
+                            <button class="btn-remove" onclick="removeFromCart('<?php echo $product_id; ?>', '<?php echo htmlspecialchars($product['name']); ?>')">Remove</button>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -154,19 +154,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </div>
 
     <script>
-        function updateQuantity(productId, newQuantity) {
-            // Update quantity in localStorage
+        function updateQuantity(productName, newQuantity) {
+            console.log('Updating quantity for product:', productName, 'New Quantity:', newQuantity);
             let cart = JSON.parse(localStorage.getItem('cart')) || [];
-            cart = cart.map(item => {
-                if (item.product_id == productId) {
-                    item.quantity = parseInt(newQuantity);
-                }
-                return item;
-            });
+            console.log('Current cart in local storage:', cart);
+
+            // Find the product in the cart by name
+            const product = cart.find(item => item.name === productName);
+            if (!product) {
+                console.error('Product not found in local storage cart');
+                return;
+            }
+
+            // Update the product quantity
+            product.quantity = parseInt(newQuantity);
             localStorage.setItem('cart', JSON.stringify(cart));
 
             // Update subtotal in the table
-            const row = document.querySelector(`tr[data-product-id="${productId}"]`);
+            const row = document.querySelector(`tr[data-product-name="${productName}"]`);
             const price = parseFloat(row.querySelector('td:nth-child(2)').textContent.replace('$', ''));
             const subtotal = price * newQuantity;
             row.querySelector('.subtotal').textContent = `$${subtotal.toFixed(2)}`;
@@ -179,7 +184,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 method: 'POST',
                 body: new URLSearchParams({
                     'update_quantity': true,
-                    'product_name': cart.find(item => item.product_id == productId).name,
+                    'product_name': product.name,
                     'quantity': newQuantity
                 }),
                 headers: {
@@ -194,6 +199,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         function recalculateTotals() {
+            console.log('Recalculating totals...');
+
             let cart = JSON.parse(localStorage.getItem('cart')) || [];
             let total = 0;
 
@@ -203,9 +210,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             });
 
             document.getElementById('total').textContent = `$${total.toFixed(2)}`;
+            console.log('New total:', total);
         }
 
         function removeFromCart(productId, productName) {
+            console.log('Removing product ID:', productId, 'Product Name:', productName);
+
             // Update cart in localStorage
             let cart = JSON.parse(localStorage.getItem('cart')) || [];
             cart = cart.filter(item => item.name !== productName);
@@ -239,6 +249,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         function clearCart() {
+            console.log('Clearing cart...');
+
             // Clear cart in localStorage
             localStorage.removeItem('cart');
 
