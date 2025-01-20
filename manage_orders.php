@@ -1,11 +1,9 @@
 <?php
 session_start();
-
-// Check if the user is logged in as an admin
-if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
-    header("Location: login.php");
-    exit;
-}
+// Enable error reporting for debugging
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 // Database connection setup
 $servername = "localhost";
@@ -51,7 +49,7 @@ if (!$result) {
         <thead>
             <tr>
                 <th>ID</th>
-                <th>Username</th>
+                <th>Name</th>
                 <th>Total Price</th>
                 <th>Status</th>
                 <th>Created At</th>
@@ -62,7 +60,7 @@ if (!$result) {
             <?php while ($order = $result->fetch_assoc()): ?>
                 <tr>
                     <td><?php echo $order['id']; ?></td>
-                    <td><?php echo $order['username']; ?></td>
+                    <td><?php echo $order['name']; ?></td>
                     <td><?php echo $order['total_price']; ?></td>
                     <td><?php echo $order['status']; ?></td>
                     <td><?php echo $order['created_at']; ?></td>
