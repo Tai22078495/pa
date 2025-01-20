@@ -1,9 +1,6 @@
 <?php
 session_start();
-// Enable error reporting for debugging
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+
 
 // Database connection setup
 $servername = "localhost";
@@ -32,6 +29,21 @@ if (!$result) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel - Manage Orders</title>
     <link rel="stylesheet" href="admin.css">
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
 </head>
 <body>
     <header>
@@ -44,12 +56,16 @@ if (!$result) {
         <a href="logout.php">Logout</a>
     </nav>
 
+    <?php if (isset($_SESSION['message'])): ?>
+        <p><?php echo $_SESSION['message']; unset($_SESSION['message']); ?></p>
+    <?php endif; ?>
+
     <h2>Orders List</h2>
-    <table border="1">
+    <table>
         <thead>
             <tr>
                 <th>ID</th>
-                <th>name</th>
+                <th>Name</th>
                 <th>Total Price</th>
                 <th>Status</th>
                 <th>Created At</th>
@@ -65,7 +81,16 @@ if (!$result) {
                     <td><?php echo $order['status']; ?></td>
                     <td><?php echo $order['created_at']; ?></td>
                     <td>
-                        <a href="update_order_status.php?id=<?php echo $order['id']; ?>">Update Status</a>
+                        <form method="POST" action="update_order_status.php">
+                            <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
+                            <select name="status">
+                                <option value="pending" <?php echo $order['status'] == 'pending' ? 'selected' : ''; ?>>Pending</option>
+                                <option value="shipped" <?php echo $order['status'] == 'shipped' ? 'selected' : ''; ?>>Shipped</option>
+                                <option value="delivered" <?php echo $order['status'] == 'delivered' ? 'selected' : ''; ?>>Delivered</option>
+                                <option value="cancelled" <?php echo $order['status'] == 'cancelled' ? 'selected' : ''; ?>>Cancelled</option>
+                            </select>
+                            <button type="submit">Confirm</button>
+                        </form>
                     </td>
                 </tr>
             <?php endwhile; ?>
