@@ -145,13 +145,42 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['remove'])) {
         <div class="checkout-btn">
             <a href="shop.php" class="btn-continue-shopping">Continue Shopping</a>
             <?php if (count($_SESSION['cart']) > 0): ?>
-                <a href="shipping_address.php">Proceed to Checkout</a>
+                <a href="personalinfo.html">Proceed to Checkout</a>
             <?php endif; ?>
         </div>
         
     </div>
 
     <script>
+        function loadCartItems() {
+            const cartData = JSON.parse(localStorage.getItem('cart')) || [];
+            const cartItemsContainer = document.getElementById('cart-items');
+
+            if (cartData.length === 0) {
+                cartItemsContainer.innerHTML = '<tr><td colspan="5" class="empty-message">Your cart is empty.</td></tr>';
+                return;
+            }
+
+            cartItemsContainer.innerHTML = ''; // Clear existing items
+
+            cartData.forEach(item => {
+                const subtotal = item.price * item.quantity;
+                const row = document.createElement('tr');
+                row.setAttribute('data-product-id', item.product_id);
+
+                row.innerHTML = `
+                    <td>${item.name}</td>
+                    <td>$${item.price.toFixed(2)}</td>
+                    <td>${item.quantity}</td>
+                    <td>$${subtotal.toFixed(2)}</td>
+                    <td>
+                        <button class="btn-remove" onclick="removeFromCart(${item.product_id}, '${item.name}')">Remove</button>
+                    </td>
+                `;
+                cartItemsContainer.appendChild(row);
+            });
+        }
+        
            function removeFromCart(productId, productName) {
             // Update cart in localStorage (if applicable)
             let cart = JSON.parse(localStorage.getItem('cart')) || [];
