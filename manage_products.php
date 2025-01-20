@@ -20,7 +20,13 @@ if ($conn->connect_error) {
 
 // Function to handle file upload
 function uploadImage($file) {
-    $target_dir = "uploads/";
+    $target_dir = "images/";
+    
+    // Ensure the images directory exists and has correct permissions
+    if (!is_dir($target_dir)) {
+        mkdir($target_dir, 0755, true);
+    }
+
     $target_file = $target_dir . basename($file["name"]);
     $imageFileType = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
 
@@ -144,8 +150,6 @@ if (!$result) {
         <a href="manage_orders.php">Manage Orders</a>
         <a href="logout.php">Logout</a>
     </nav>
-
-    <h1>Admin Panel - Manage Products</h1>
 
     <h2>Add Product</h2>
     <form method="POST" action="" enctype="multipart/form-data">
