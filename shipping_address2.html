@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shipping Address</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .button {
+            display: block;
+            text-align: center;
+            padding: 15px 30px;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .button:hover {
+            background-color: #555;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Shipping Address</h2>
+    <form id="checkout-form">
+        <input type="text" name="username" class="form-control" placeholder="Username" required>
+        <input type="email" name="email" class="form-control" placeholder="Email" required>
+        <input type="text" name="address" class="form-control" placeholder="Address" required>
+        <input type="text" name="phone_number" class="form-control" placeholder="Phone Number" required>
+        <button type="submit" class="button">Proceed to Checkout</button>
+    </form>
+</div>
+
+<script>
+    document.querySelector('#checkout-form').addEventListener('submit', function (e) {
+        e.preventDefault(); // Prevent form submission
+
+        const formData = new FormData(this);
+        const cartData = JSON.parse(localStorage.getItem('cart')) || []; // Get cart data from localStorage
+
+        if (cartData.length === 0) {
+            alert('Your cart is empty!');
+            return;
+        }
+
+        formData.append('cartData', JSON.stringify(cartData)); // Append cartData to formData
+
+        fetch('shipping_address2.php', {
+            method: 'POST',
+            body: formData,
+        })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Response Data:', data);
+                if (data.success) {
+                    alert('Order placed successfully!');
+                    localStorage.removeItem('cart'); // Clear the cart
+                    window.location.href = 'payment.php'; // Redirect to payment page
+                } else {
+                    alert('Order failed: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
+    });
+</script>
+</body>
+</html>
