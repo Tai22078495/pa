@@ -1,110 +1,96 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Information</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
+<?php
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    header('Content-Type: application/json');
+
+    // Check for required inputs
+    if (!isset($_POST['address'], $_POST['cartData'])) {
+        echo json_encode(['success' => false, 'message' => 'Missing required fields']);
+        exit;
+    }
+
+    // Decode cart data
+    $cartData = json_decode($_POST['cartData'], true);
+    if (empty($cartData)) {
+        echo json_encode(['success' => false, 'message' => 'Cart data is empty or invalid']);
+        exit;
+    }
+
+    // Debugging output to verify cartData structure
+    error_log('Received cart data: ' . print_r($cartData, true));
+
+    // Ensure each cart item has the required structure
+    foreach ($cartData as $item) {
+        if (!isset($item['product_id'], $item['quantity'], $item['total_price'])) {
+            error_log('Invalid cart item structure: ' . print_r($item, true)); // Debugging output
+            echo json_encode(['success' => false, 'message' => 'Invalid cart item structure']);
+            exit;
         }
+    }
 
-        .container {
-            max-width: 800px;
-            margin: 50px auto;
-            padding: 20px;
-            background-color: #fff;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    $address = $_POST['address'];
+    $username = 'guest'; // Default username for non-logged-in users
+
+    // Connect to the database
+    $conn = new mysqli('localhost', 'root', '', 'chicify_fashion');
+    if ($conn->connect_error) {
+        echo json_encode(['success' => false, 'message' => 'Database connection failed: ' . $conn->connect_error]);
+        exit;
+    }
+
+    // Start transaction
+    $conn->begin_transaction();
+
+    try {
+        // Insert order into the orders table
+        $stmt = $conn->prepare("INSERT INTO orders (username, total_price, status, created_at) VALUES (?, ?, 'pending', NOW())");
+        $totalPrice = array_sum(array_column($cartData, 'total_price'));
+        $stmt->bind_param("sd", $username, $totalPrice);
+        $stmt->execute();
+        $orderId = $stmt->insert_id;
+        $stmt->close();
+
+        // Insert each cart item into the order_items table
+        $stmt = $conn->prepare("INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)");
+        foreach ($cartData as $item) {
+            $productId = $item['product_id'];
+            $quantity = $item['quantity'];
+            $price = $item['total_price'] / $quantity; // assuming total_price is for the total quantity
+
+            // Check if the product ID exists in the products table
+            $product_check_stmt = $conn->prepare("SELECT COUNT(*) FROM products WHERE id = ?");
+            $product_check_stmt->bind_param("i", $productId);
+            $product_check_stmt->execute();
+            $product_check_stmt->bind_result($product_exists);
+            $product_check_stmt->fetch();
+            $product_check_stmt->close();
+
+            if ($product_exists == 0) {
+                throw new Exception("Product ID $productId does not exist in the products table");
+            }
+
+            $stmt->bind_param("iiid", $orderId, $productId, $quantity, $price);
+            $stmt->execute();
         }
+        $stmt->close();
 
-        h2 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
+        // Commit transaction
+        $conn->commit();
+        $conn->close();
 
-        .form-control {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
+        // Return success response
+        echo json_encode(['success' => true, 'message' => 'Order placed successfully']);
+        exit;
 
-        .button {
-            display: block;
-            text-align: center;
-            padding: 15px 30px;
-            background-color: #333;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-        }
+    } catch (Exception $e) {
+        // Rollback transaction in case of error
+        $conn->rollback();
+        $conn->close();
+        echo json_encode(['success' => false, 'message' => 'Failed to place the order: ' . $e->getMessage()]);
+        exit;
+    }
 
-        .button:hover {
-            background-color: #555;
-        }
-    </style>
-</head>
-<body>
-<div class="container">
-    <h2>Personal Details</h2>
-    <form id="checkout-form">
-        <input type="text" name="username" class="form-control" placeholder="Username" required>
-        <input type="email" name="email" class="form-control" placeholder="Email" required>
-        <input type="text" name="address" class="form-control" placeholder="Address" required>
-        <input type="text" name="phone_number" class="form-control" placeholder="Phone Number" required>
-        <button type="submit" class="button">Proceed to Checkout</button>
-    </form>
-</div>
-
-<script>
-    document.querySelector('#checkout-form').addEventListener('submit', function (e) {
-        e.preventDefault(); // Prevent form submission
-
-        const formData = new FormData(this);
-        const cartData = JSON.parse(localStorage.getItem('cart')) || []; // Get cart data from localStorage
-
-        if (cartData.length === 0) {
-            alert('Your cart is empty!');
-            return;
-        }
-
-        // Ensure the cartData is correctly structured
-        const structuredCartData = cartData.map(item => ({
-            product_id: item.product_id, // Ensure this field is correctly set from your product catalog
-            quantity: item.quantity,
-            total_price: item.price * item.quantity,
-        }));
-
-        console.log('Cart Data before sending:', structuredCartData); // Debugging output
-
-        formData.append('cartData', JSON.stringify(structuredCartData)); // Append cartData to formData
-
-        fetch('personalinfo.php', {
-            method: 'POST',
-            body: formData,
-        })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Response Data:', data);
-                if (data.success) {
-                    alert('Order placed successfully!');
-                    localStorage.removeItem('cart'); // Clear the cart
-                    window.location.href = 'payment.php'; // Redirect to payment page
-                } else {
-                    alert('Order failed: ' + (data.message || 'Unknown error'));
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred. Please try again.');
-            });
-    });
-</script>
-</body>
-</html>
+} else {
+    echo json_encode(['success' => false, 'message' => 'Invalid request method']);
+    exit;
+}
+?>
