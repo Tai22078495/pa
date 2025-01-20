@@ -13,17 +13,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         // Re-index the array to avoid gaps after removing an item
         $cart = array_values($cart);
         $_SESSION['cart'] = $cart;
-    } elseif (isset($_POST['update_quantity'])) {
-        // Update quantity logic
-        $product_name = $_POST['product_name'];
-        $new_quantity = intval($_POST['quantity']);
-        foreach ($cart as &$item) {
-            if ($item['name'] == $product_name) {
-                $item['quantity'] = $new_quantity;
-                break;
-            }
-        }
-        $_SESSION['cart'] = $cart;
     } elseif (isset($_POST['clear_cart'])) {
         // Clear cart logic
         $_SESSION['cart'] = [];
@@ -79,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             background-color: #f9f9f9;
         }
 
-        .cart-table button, .checkout-btn button {
+        .cart-table button, .checkout-btn button, .btn-continue-shopping, .btn-checkout {
             background-color: #333;
             color: white;
             padding: 10px 20px;
@@ -87,9 +76,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             cursor: pointer;
             border-radius: 5px;
             font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
         }
 
-        .cart-table button:hover, .checkout-btn button:hover {
+        .cart-table button:hover, .checkout-btn button:hover, .btn-continue-shopping:hover, .btn-checkout:hover {
             background-color: #555;
         }
 
@@ -98,21 +89,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             justify-content: center;
             gap: 10px;
             margin-top: 20px;
-        }
-
-        .checkout-btn a, .checkout-btn button {
-            background-color: #333;
-            color: white;
-            padding: 10px 20px;
-            text-decoration: none;
-            border: none;
-            cursor: pointer;
-            border-radius: 5px;
-            font-size: 14px;
-        }
-
-        .checkout-btn a:hover, .checkout-btn button:hover {
-            background-color: #555;
         }
 
         .empty-message {
@@ -170,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div class="checkout-btn">
             <a href="shop.php" class="btn-continue-shopping">Continue Shopping</a>
             <?php if (count($cart) > 0): ?>
-                <a href="personalinfo.html">Proceed to Checkout</a>
+                <a href="personalinfo.html" class="btn-checkout">Proceed to Checkout</a>
                 <button onclick="clearCart()">Clear Cart</button>
             <?php endif; ?>
         </div>
@@ -197,6 +173,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             // Recalculate the total
             recalculateTotals();
+
+            // Notify backend to update the session
+            fetch('update_quantity.php', {
+                method: 'POST',
+                body: new URLSearchParams({
+                    'update_quantity': true,
+                    'product_name': cart.find(item => item.product_id == productId).name,
+                    'quantity': newQuantity
+                }),
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+            }).then(response => response.json())
+            .then(data => {
+                console.log('Quantity updated successfully:', data);
+            }).catch(error => {
+                console.error('Error updating quantity:', error);
+            });
         }
 
         function recalculateTotals() {
@@ -208,7 +202,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 total += subtotal;
             });
 
-            // Update the total in the table
             document.getElementById('total').textContent = `$${total.toFixed(2)}`;
         }
 
@@ -237,7 +230,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 }
-            }).then(response => response.text())
+            }).then(response => response.json())
             .then(data => {
                 console.log('Item removed successfully:', data);
             }).catch(error => {
@@ -258,7 +251,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 }
-            }).then(response => response.text())
+            }).then(response => response.json())
             .then(data => {
                 console.log('Cart cleared successfully:', data);
                 location.reload(); // Reload the page to update totals
