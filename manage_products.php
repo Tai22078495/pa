@@ -33,17 +33,20 @@ function uploadImage($file) {
     // Check if image file is a valid image
     $check = getimagesize($file["tmp_name"]);
     if ($check === false) {
-        die("File is not an image.");
+        echo "<script>alert('File is not an image.');</script>";
+        return false;
     }
 
     // Allow certain file formats
     if (!in_array($imageFileType, ["jpg", "png", "jpeg", "gif"])) {
-        die("Only JPG, JPEG, PNG & GIF files are allowed.");
+        echo "<script>alert('Only JPG, JPEG, PNG & GIF files are allowed.');</script>";
+        return false;
     }
 
     // Move file to target directory
     if (!move_uploaded_file($file["tmp_name"], $target_file)) {
-        die("Sorry, there was an error uploading your file.");
+        echo "<script>alert('Sorry, there was an error uploading your file.');</script>";
+        return false;
     }
 
     return $target_file;
@@ -54,11 +57,13 @@ function addProduct($conn, $name, $price, $image_url, $quantity) {
     $sql = "INSERT INTO products (name, price, images, quantity) VALUES (?, ?, ?, ?)";
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
-        die("Prepare failed: " . $conn->error);
+        echo "<script>alert('Prepare failed: " . $conn->error . "');</script>";
+        return false;
     }
     $stmt->bind_param("sdsi", $name, $price, $image_url, $quantity);
     if (!$stmt->execute()) {
-        die("Execute failed: " . $stmt->error);
+        echo "<script>alert('Execute failed: " . $stmt->error . "');</script>";
+        return false;
     }
     return true;
 }
@@ -68,11 +73,13 @@ function editProduct($conn, $id, $name, $price, $image_url, $quantity) {
     $sql = "UPDATE products SET name = ?, price = ?, images = ?, quantity = ? WHERE id = ?";
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
-        die("Prepare failed: " . $conn->error);
+        echo "<script>alert('Prepare failed: " . $conn->error . "');</script>";
+        return false;
     }
     $stmt->bind_param("sdsii", $name, $price, $image_url, $quantity, $id);
     if (!$stmt->execute()) {
-        die("Execute failed: " . $stmt->error);
+        echo "<script>alert('Execute failed: " . $stmt->error . "');</script>";
+        return false;
     }
     return true;
 }
@@ -82,45 +89,38 @@ function deleteProduct($conn, $id) {
     $sql = "DELETE FROM products WHERE id = ?";
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
-        die("Prepare failed: " . $conn->error);
+        echo "<script>alert('Prepare failed: " . $conn->error . "');</script>";
+        return false;
     }
     $stmt->bind_param("i", $id);
     if (!$stmt->execute()) {
-        die("Execute failed: " . $stmt->error);
+        echo "<script>alert('Execute failed: " . $stmt->error . "');</script>";
+        return false;
     }
     return true;
 }
 
 // Handle form submissions
+$message = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['add_product'])) {
         $image_url = uploadImage($_FILES['image_url']);
-        addProduct(
-            $conn,
-            $_POST['product_name'],
-            $_POST['price'],
-            $image_url,
-            $_POST['quantity']
-        );
-        echo "Product added successfully!";
+        if ($image_url && addProduct($conn, $_POST['product_name'], $_POST['price'], $image_url, $_POST['quantity'])) {
+            $message = "Product added successfully!";
+        }
     } elseif (isset($_POST['edit_product'])) {
         $image_url = !empty($_FILES['image_url']['name']) ? uploadImage($_FILES['image_url']) : $_POST['current_image_url'];
-        editProduct(
-            $conn,
-            $_POST['id'],
-            $_POST['product_name'],
-            $_POST['price'],
-            $image_url,
-            $_POST['quantity']
-        );
-        echo "Product updated successfully!";
+        if ($image_url && editProduct($conn, $_POST['id'], $_POST['product_name'], $_POST['price'], $image_url, $_POST['quantity'])) {
+            $message = "Product updated successfully!";
+        }
     }
 }
 
 // Handle delete action
 if (isset($_GET['delete_product'])) {
-    deleteProduct($conn, intval($_GET['delete_product']));
-    echo "Product deleted successfully!";
+    if (deleteProduct($conn, intval($_GET['delete_product']))) {
+        $message = "Product deleted successfully!";
+    }
 }
 
 // Fetch all products
@@ -139,6 +139,25 @@ if (!$result) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel - Manage Products</title>
     <link rel="stylesheet" href="admin.css">
+    <style>
+        /* Add styles for larger images */
+        .product-image {
+            width: 100px; /* Adjust the width as needed */
+            height: 100px; /* Adjust the height as needed */
+            object-fit: cover; /* Ensure the image fits within the specified dimensions */
+        }
+    </style>
+    <script>
+        // Function to display an alert message
+        function showAlert(message) {
+            alert(message);
+        }
+
+        // Check if a message needs to be displayed
+        <?php if (!empty($message)): ?>
+            showAlert("<?php echo $message; ?>");
+        <?php endif; ?>
+    </script>
 </head>
 <body>
     <header>
@@ -183,7 +202,7 @@ if (!$result) {
                     <td><?php echo $row['id']; ?></td>
                     <td><?php echo $row['name']; ?></td>
                     <td><?php echo $row['price']; ?></td>
-                    <td><img src="<?php echo $row['images']; ?>" alt="Product Image" width="50"></td>
+                    <td><img src="<?php echo $row['images']; ?>" alt="Product Image" class="product-image"></td>
                     <td><?php echo $row['quantity']; ?></td>
                     <td><?php echo $row['created_at']; ?></td>
                     <td>
