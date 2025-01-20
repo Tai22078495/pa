@@ -3,10 +3,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Content-Type: application/json');
 
     // Check for required inputs
-    if (!isset($_POST['address'], $_POST['cartData'])) {
+    if (!isset($_POST['name'], $_POST['address'], $_POST['cartData'])) {
         echo json_encode(['success' => false, 'message' => 'Missing required fields']);
         exit;
     }
+
+    $name = $_POST['name'];
+    $address = $_POST['address'];
 
     // Decode cart data
     $cartData = json_decode($_POST['cartData'], true);
@@ -27,9 +30,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    $address = $_POST['address'];
-    $username = 'guest'; // Default username for non-logged-in users
-
     // Connect to the database
     $conn = new mysqli('localhost', 'root', '', 'chicify_fashion');
     if ($conn->connect_error) {
@@ -42,9 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         // Insert order into the orders table
-        $stmt = $conn->prepare("INSERT INTO orders (username, total_price, status, created_at) VALUES (?, ?, 'pending', NOW())");
+        $stmt = $conn->prepare("INSERT INTO orders (name, total_price, status, created_at) VALUES (?, ?, 'pending', NOW())");
         $totalPrice = array_sum(array_column($cartData, 'total_price'));
-        $stmt->bind_param("sd", $username, $totalPrice);
+        $stmt->bind_param("sd", $name, $totalPrice);
         $stmt->execute();
         $orderId = $stmt->insert_id;
         $stmt->close();
