@@ -81,31 +81,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             background-color: #f9f9f9;
         }
 
-        .cart-table button {
+        .cart-table button, .checkout-btn button {
             background-color: #333;
             color: white;
             padding: 10px 20px;
             border: none;
             cursor: pointer;
             border-radius: 5px;
+            font-size: 14px;
         }
 
-        .cart-table button:hover {
+        .cart-table button:hover, .checkout-btn button:hover {
             background-color: #555;
         }
 
         .checkout-btn {
-            display: block;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
             margin-top: 20px;
-            text-align: center;
         }
 
-        .checkout-btn a {
-            background-color: #333;
-            color: white;
-            padding: 15px 30px;
+        .checkout-btn a, .checkout-btn button {
             text-decoration: none;
             border-radius: 5px;
+            font-size: 14px;
         }
 
         .checkout-btn a:hover {
@@ -145,7 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <td>
                             <input type="number" min="1" value="<?php echo $product['quantity']; ?>" onchange="updateQuantity('<?php echo $product_id; ?>', this.value)">
                         </td>
-                        <td>$<?php echo number_format($subtotal, 2); ?></td>
+                        <td class="subtotal">$<?php echo number_format($subtotal, 2); ?></td>
                         <td>
                             <button class="btn-remove" onclick="removeFromCart('<?php echo $product_id; ?>', '<?php echo $product['name']; ?>')">Remove</button>
                         </td>
@@ -153,7 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <?php endforeach; ?>
                     <tr>
                         <td colspan="3"><strong>Total</strong></td>
-                        <td><strong>$<?php echo number_format($total, 2); ?></strong></td>
+                        <td id="total"><strong>$<?php echo number_format($total, 2); ?></strong></td>
                         <td></td>
                     </tr>
                 <?php else: ?>
@@ -186,6 +186,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             });
             localStorage.setItem('cart', JSON.stringify(cart));
 
+            // Update subtotal and total in the table
+            const row = document.querySelector(`tr[data-product-id="${productId}"]`);
+            const price = parseFloat(row.querySelector('td:nth-child(2)').textContent.replace('$', ''));
+            const subtotal = price * newQuantity;
+            row.querySelector('.subtotal').textContent = `$${subtotal.toFixed(2)}`;
+
+            // Recalculate the total
+            recalculateTotals();
+
             // Notify backend to update the session
             fetch('cart.php', {
                 method: 'POST',
@@ -200,10 +209,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }).then(response => response.text())
             .then(data => {
                 console.log('Quantity updated successfully:', data);
-                location.reload(); // Reload the page to update totals
             }).catch(error => {
                 console.error('Error updating quantity:', error);
             });
+        }
+
+        function recalculateTotals() {
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            let total = 0;
+
+            cart.forEach(item => {
+                const subtotal = item.price * item.quantity;
+                total += subtotal;
+            });
+
+            document.getElementById('total').textContent = `$${total.toFixed(2)}`;
         }
 
         function removeFromCart(productId, productName) {
@@ -218,6 +238,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 row.remove();
             }
 
+            // Recalculate the total
+            recalculateTotals();
+
             // Notify backend to update the session
             fetch('cart.php', {
                 method: 'POST',
@@ -231,7 +254,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }).then(response => response.text())
             .then(data => {
                 console.log('Item removed successfully:', data);
-                location.reload(); // Reload the page to update totals
             }).catch(error => {
                 console.error('Error removing item:', error);
             });
