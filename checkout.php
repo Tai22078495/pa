@@ -15,6 +15,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    // Debugging output
+    error_log('Received cart data: ' . print_r($cartData, true));
+
+    // Validate each cart item
+    foreach ($cartData as $item) {
+        if (!isset($item['product_id'], $item['quantity'], $item['total_price'])) {
+            echo json_encode(['success' => false, 'message' => 'Invalid cart item structure']);
+            exit;
+        }
+    }
+
     $address = $_POST['address'];
     $city = $_POST['city'];
     $postalCode = $_POST['postal_code'];
@@ -42,10 +53,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Insert each cart item into the order_items table
         $stmt = $conn->prepare("INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)");
         foreach ($cartData as $item) {
-            if (!isset($item['product_id'], $item['quantity'], $item['total_price'])) {
-                throw new Exception('Invalid cart item structure');
-            }
-
             $productId = $item['product_id'];
             $quantity = $item['quantity'];
             $price = $item['total_price'] / $quantity; // assuming total_price is for the total quantity
