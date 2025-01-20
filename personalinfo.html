@@ -80,13 +80,20 @@
         const structuredCartData = cartData.map(item => {
             if (!item.product_id) {
                 console.error('Cart item missing product_id:', item);
+                alert('A cart item is missing its product id.');
+                return null; // Returning null to filter out invalid items
             }
             return {
                 product_id: item.product_id, // Ensure this field is correctly set from your product catalog
                 quantity: item.quantity,
                 total_price: item.price * item.quantity,
             };
-        });
+        }).filter(item => item !== null); // Filter out any invalid items
+
+        if (structuredCartData.length === 0) {
+            alert('No valid cart items to checkout.');
+            return;
+        }
 
         console.log('Cart Data before sending:', JSON.stringify(structuredCartData, null, 2)); // Debugging output
 
