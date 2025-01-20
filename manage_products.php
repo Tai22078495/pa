@@ -33,19 +33,19 @@ function uploadImage($file) {
     // Check if image file is a valid image
     $check = getimagesize($file["tmp_name"]);
     if ($check === false) {
-        echo "<script>alert('File is not an image.');</script>";
+        $_SESSION['message'] = 'File is not an image.';
         return false;
     }
 
     // Allow certain file formats
     if (!in_array($imageFileType, ["jpg", "png", "jpeg", "gif"])) {
-        echo "<script>alert('Only JPG, JPEG, PNG & GIF files are allowed.');</script>";
+        $_SESSION['message'] = 'Only JPG, JPEG, PNG & GIF files are allowed.';
         return false;
     }
 
     // Move file to target directory
     if (!move_uploaded_file($file["tmp_name"], $target_file)) {
-        echo "<script>alert('Sorry, there was an error uploading your file.');</script>";
+        $_SESSION['message'] = 'Sorry, there was an error uploading your file.';
         return false;
     }
 
@@ -57,12 +57,12 @@ function addProduct($conn, $name, $price, $image_url, $quantity) {
     $sql = "INSERT INTO products (name, price, images, quantity) VALUES (?, ?, ?, ?)";
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
-        echo "<script>alert('Prepare failed: " . $conn->error . "');</script>";
+        $_SESSION['message'] = 'Prepare failed: ' . $conn->error;
         return false;
     }
     $stmt->bind_param("sdsi", $name, $price, $image_url, $quantity);
     if (!$stmt->execute()) {
-        echo "<script>alert('Execute failed: " . $stmt->error . "');</script>";
+        $_SESSION['message'] = 'Execute failed: ' . $stmt->error;
         return false;
     }
     return true;
@@ -73,12 +73,12 @@ function editProduct($conn, $id, $name, $price, $image_url, $quantity) {
     $sql = "UPDATE products SET name = ?, price = ?, images = ?, quantity = ? WHERE id = ?";
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
-        echo "<script>alert('Prepare failed: " . $conn->error . "');</script>";
+        $_SESSION['message'] = 'Prepare failed: ' . $conn->error;
         return false;
     }
     $stmt->bind_param("sdsii", $name, $price, $image_url, $quantity, $id);
     if (!$stmt->execute()) {
-        echo "<script>alert('Execute failed: " . $stmt->error . "');</script>";
+        $_SESSION['message'] = 'Execute failed: ' . $stmt->error;
         return false;
     }
     return true;
@@ -89,37 +89,43 @@ function deleteProduct($conn, $id) {
     $sql = "DELETE FROM products WHERE id = ?";
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
-        echo "<script>alert('Prepare failed: " . $conn->error . "');</script>";
+        $_SESSION['message'] = 'Prepare failed: ' . $conn->error;
         return false;
     }
     $stmt->bind_param("i", $id);
     if (!$stmt->execute()) {
-        echo "<script>alert('Execute failed: " . $stmt->error . "');</script>";
+        $_SESSION['message'] = 'Execute failed: ' . $stmt->error;
         return false;
     }
     return true;
 }
 
 // Handle form submissions
-$message = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['add_product'])) {
         $image_url = uploadImage($_FILES['image_url']);
         if ($image_url && addProduct($conn, $_POST['product_name'], $_POST['price'], $image_url, $_POST['quantity'])) {
-            $message = "Product added successfully!";
+            $_SESSION['message'] = 'Product added successfully!';
         }
     } elseif (isset($_POST['edit_product'])) {
         $image_url = !empty($_FILES['image_url']['name']) ? uploadImage($_FILES['image_url']) : $_POST['current_image_url'];
         if ($image_url && editProduct($conn, $_POST['id'], $_POST['product_name'], $_POST['price'], $image_url, $_POST['quantity'])) {
-            $message = "Product updated successfully!";
+            $_SESSION['message'] = 'Product updated successfully!';
         }
     }
+
+    // Redirect to clear POST data and display the message
+    header("Location: manage_products.php");
+    exit();
 }
 
 // Handle delete action
 if (isset($_GET['delete_product'])) {
     if (deleteProduct($conn, intval($_GET['delete_product']))) {
-        $message = "Product deleted successfully!";
+        $_SESSION['message'] = 'Product deleted successfully!';
+        // Redirect to clear GET data and display the message
+        header("Location: manage_products.php");
+        exit();
     }
 }
 
@@ -154,8 +160,9 @@ if (!$result) {
         }
 
         // Check if a message needs to be displayed
-        <?php if (!empty($message)): ?>
-            showAlert("<?php echo $message; ?>");
+        <?php if (isset($_SESSION['message']) && !empty($_SESSION['message'])): ?>
+            showAlert("<?php echo $_SESSION['message']; ?>");
+            <?php unset($_SESSION['message']); ?>
         <?php endif; ?>
     </script>
 </head>

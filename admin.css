@@ -1,0 +1,238 @@
+/* General Styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #eaf2f8;
+    margin: 0;
+    padding: 0;
+    color: #333;
+    line-height: 1.8;
+}
+
+header {
+    background-color: #0056b3;
+    color: white;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+main {
+    padding: 20px;
+    width: 90%;
+    max-width: 1000px;
+    margin: 20px auto;
+}
+
+.section {
+    margin-bottom: 30px;
+}
+
+footer {
+    text-align: center;
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #0056b3;
+    color: white;
+    font-size: 0.9em;
+    width: 100%;
+}
+
+h1 {
+    color: white;
+    background-color: #007bff;
+    padding: 20px;
+    margin: 0;
+    text-align: center;
+    font-size: 2em;
+    border-bottom: 2px solid #0056b3;
+}
+
+h2 {
+    margin: 20px 0;
+    text-align: center;
+    font-size: 1.5em;
+    color: #333;
+    border-bottom: 2px solid #ddd;
+    padding-bottom: 8px;
+}
+
+/* Navigation Bar */
+nav {
+    display: flex;
+    justify-content: center;
+    background-color: #003f7f;
+    padding: 15px 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+nav a {
+    color: white;
+    padding: 10px 20px;
+    text-decoration: none;
+    margin: 0 10px;
+    border-radius: 5px;
+    font-size: 1em;
+    transition: background-color 0.3s ease;
+}
+
+nav a:hover {
+    background-color: #002952;
+}
+
+/* Main Content */
+.container {
+    width: 95%;
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    background: white;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+/* Form Styling */
+form {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+form label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+form input[type="text"],
+form input[type="number"],
+form input[type="file"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+button, .add-product-button {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin: 5px 0;
+}
+
+button:hover, .add-product-button:hover {
+    background-color: #218838;
+}
+
+.add-product-button {
+    display: inline-block;
+    margin-bottom: 20px;
+    text-decoration: none;
+}
+
+/* Table Styles */
+table {
+    width: 100%;
+    max-width: 90%;
+    margin: 20px auto;
+    border-collapse: collapse;
+    font-size: 0.85em;
+    color: #333;
+}
+
+th, td {
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    vertical-align: middle;
+}
+
+th {
+    background-color: #0056b3;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+tr:nth-child(even) {
+    background-color: #f1f5fa;
+}
+
+tr:hover {
+    background-color: #dce7f3;
+}
+
+/* Product Image */
+td img {
+    max-width: 150px;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}
+
+/* Action Cell (No Centering for Forms) */
+td .action-cell {
+    text-align: left;
+    display: block;
+    margin: 0;
+}
+
+a {
+    color: #0056b3;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Action Buttons */
+.action-buttons a {
+    background-color: #0056b3;
+    color: white;
+    padding: 8px 12px;
+    text-decoration: none;
+    border-radius: 5px;
+    font-size: 0.85em;
+    margin-right: 5px;
+    transition: background-color 0.3s ease;
+}
+
+.action-buttons a:hover {
+    background-color: #003f7f;
+}
+
+.action-buttons a.delete {
+    background-color: #dc3545;
+}
+
+.action-buttons a.delete:hover {
+    background-color: #b21f2d;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        width: 95%;
+        padding: 15px;
+    }
+
+    th, td {
+        font-size: 0.8em;
+        padding: 8px;
+    }
+
+    nav a {
+        padding: 8px 12px;
+        font-size: 0.9em;
+    }
+}
