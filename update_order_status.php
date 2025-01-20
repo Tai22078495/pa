@@ -1,12 +1,6 @@
 <?php
 session_start();
 
-// Check if the user is logged in as an admin
-if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
-    header("Location: login.php");
-    exit;
-}
-
 // Database connection setup
 $servername = "localhost";
 $username = "root";
@@ -30,12 +24,16 @@ if (isset($_GET['id']) && isset($_POST['status'])) {
     $stmt->bind_param("si", $status, $order_id);
 
     if ($stmt->execute()) {
-        echo "Order status updated successfully!";
+        $_SESSION['message'] = 'Order status updated successfully!';
     } else {
-        echo "Error updating order status: " . $stmt->error;
+        $_SESSION['message'] = 'Error updating order status: ' . $stmt->error;
     }
 
     $stmt->close();
+
+    // Redirect to manage orders page
+    header("Location: manage_orders.php");
+    exit();
 }
 
 // Fetch order details
@@ -54,8 +52,9 @@ if (isset($_GET['id'])) {
 
     // If no order found, redirect to manage orders
     if (!$order) {
-        echo "Order not found.";
-        exit;
+        $_SESSION['message'] = 'Order not found.';
+        header("Location: manage_orders.php");
+        exit();
     }
 }
 ?>
@@ -66,9 +65,13 @@ if (isset($_GET['id'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Update Order Status</title>
+    <link rel="stylesheet" href="admin.css">
 </head>
 <body>
-    <h1>Update Order Status</h1>
+    <header>
+        <h1>Update Order Status</h1>
+    </header>
+
     <form method="POST">
         <label for="order_id">Order ID: </label>
         <input type="text" name="order_id" value="<?php echo htmlspecialchars($order['id']); ?>" readonly>
