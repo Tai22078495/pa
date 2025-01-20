@@ -49,7 +49,7 @@ if (!$result) {
         <thead>
             <tr>
                 <th>ID</th>
-                <th>Name</th>
+                <th>name</th>
                 <th>Total Price</th>
                 <th>Status</th>
                 <th>Created At</th>
